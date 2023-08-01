@@ -1,0 +1,523 @@
+
+
+
+
+		
+		jmp		INIT_FUNCTION
+		.org	0x250
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//CSEG & DSEG
+		.dseg 
+		.equ MOSI = PB3
+		.equ MISO = PB4
+		.equ SCLK = PB5
+		.equ SPI_DDR = DDRB
+		.equ CS = PB2
+
+LCD_DATA:	
+		.byte 1
+LCD_DATA2:	
+		.byte 1 
+DATA:		
+		.byte 1
+
+		.cseg  
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//DAmatrix - Character, obstacle & floor
+OBSTICLE:
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //HÖGER
+		.db 0b00111000, 0b00000000, 0b00000000, 0b10011111 //MITTEN
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000010 //VÄNSTER
+
+FLOOR:
+		.db 0b00000000, 0b11111111, 0b00000000, 0b01111111
+		.db 0b00000000, 0b11111111, 0b00000000, 0b01111111
+		.db 0b00000000, 0b11111111, 0b00000000, 0b01111111
+DINO_IDLE: 
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //HÖGER
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //MITTEN
+		.db 0b01100000, 0b01100000, 0b01100000, 0b10001111 //VÄNSTER
+
+DINO_JUMP1: 
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //HÖGER
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //MITTEN
+		.db 0b01100000, 0b01100000, 0b01100000, 0b11000111 //VÄNSTER
+
+DINO_JUMP2: 
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //HÖGER
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //MITTEN
+		.db 0b01100000, 0b01100000, 0b01100000, 0b11100011 //VÄNSTER
+
+DINO_JUMP3: 
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //HÖGER
+		.db 0b00000000, 0b00000000, 0b00000000, 0b00000000 //MITTEN
+		.db 0b01100000, 0b01100000, 0b01100000, 0b11110001 //VÄNSTER
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+TEXTONE: 
+		.db		"NEW GAME STARTED ", $00
+TEXTTWO: 
+		.db		"   GAME OVER!    ",$00
+TEXTTHREE:
+		.db		" PRESS TO START  ",$00
+
+		.equ	ADDR_LCD = $20 
+		.equ	SLA_LCD_W = (ADDR_LCD << 1) | 0 
+		.equ	SLA_LCD_R = (ADDR_LCD << 1) | 1 
+		.equ	FN_SET = $2B 
+		.equ	E_MODE = $06
+		.equ	DISP_ON = $0F
+		.equ	LCD_CLR = $01
+		.equ	E = $01
+		.equ	HOME = $02
+		.equ	RS = PB0
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+INIT_FUNCTION:
+		call	TWI_INIT
+		clr		r16
+		call	LCD_INIT
+		call	LCD_INIT
+		clr		r16
+		call	SPI_MASTER_INIT
+		clr		r17
+		call	BUTTON_INIT	
+		clr		r17
+READY_NOW:
+		call	LCD_READY
+		call	BUTTON_R
+		call	LCD_GAMESTART
+		call	BUTTON_R
+		jmp		MAIN
+
+TWI_INIT: 
+		ldi		r16, 100  // enligt peter. såg att micke skrev nåt om  255 här
+		sts		TWBR, r16
+		ldi		r16, (0<<TWINT) | (1<<TWEN)
+		sts		TWCR,r16
+		ret
+
+LCD_INIT:
+		call	LCD_WAIT
+		ldi		r16, $20 //alt $30
+		sts		LCD_DATA, r16
+		call	LCD_WRITE4 
+		ldi		r16, $2C
+		call	LCD_COMMAND
+		ldi		r16, DISP_ON
+		call	LCD_COMMAND
+		ldi		r16, $01
+		call	LCD_COMMAND
+		call	LCD_WAIT
+		ldi		r16,E_MODE
+		call	LCD_COMMAND
+		call	LCD_HOME
+		ret 
+
+SPI_MASTER_INIT: // Enable spi_spcr, sätta att vi är master, sänka hastigheten (Fosc/128)= sänka till långsamste hastigheten
+		ldi		r17, (1<<MOSI)|(1<<SCLK)|(1<<PB2)
+		out		SPI_DDR, r17
+		ldi		r17, (1<<SPE) | (1<<MSTR) | (1<< SPR0)
+		out		SPCR, r17
+		ret
+
+BUTTON_INIT: 
+		ldi		r17, $00 //(Måste få ut $00 från DDRD, går att använda vilket register som)
+		out		DDRD,r17
+		ret
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+MAIN:
+		//call	BUTTON_L
+		//call	BUTTON_R
+		call	UDED_SON
+		jmp		MAIN
+
+UDED_SON:														//TEST FÖR NÄR SPELET ÄR "IGÅNG"
+		call	LCD_GAMEOVER
+		call	BUTTON_R
+		jmp		READY_NOW
+
+BUTTON_GO:
+		sbic	PIND,PD1
+		jmp		BUTTON_GO
+		call	LCD_CLEAR
+		jmp		LCD_GAMESTART
+
+BUTTON_L: 
+		sbic	PIND, PD1 //PD0 är för höger knapp (tror jag)
+		jmp		BUTTON_L
+		ret
+
+BUTTON_R: 
+		sbic	PIND, PD0 //PD0 är för höger knapp (tror jag)
+		jmp		BUTTON_R
+		ret
+
+CHARACTER_IDLE:															//KOLLA DESSA TRE RUITNER FÖR NÅGOT STÄMMER INTE
+		call	LOAD_DINO_IDLE
+		call	SEND_MATRIX
+
+CHARACTER_JUMP:
+		call	LOAD_DINO_JUMP1
+		call	SEND_MATRIX
+		call	LOAD_DINO_JUMP2
+		call	SEND_MATRIX
+		call	LOAD_DINO_JUMP3
+		call	SEND_MATRIX
+
+CHARACTER_FALL:
+		call	LOAD_DINO_JUMP2
+		Call	DELAY_HALFSECOND
+		call	SEND_MATRIX
+		call	LOAD_DINO_JUMP1
+		Call	DELAY_HALFSECOND
+		call	SEND_MATRIX
+		call	LOAD_DINO_IDLE
+		Call	DELAY_HALFSECOND
+		call	SEND_MATRIX
+	
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//NEW_GAME & GAME_LOST
+NEW_GAME:
+		ldi		r18,0
+NEW_GAME_LOOP:
+		sbi		PORTD,PD4
+		sbi		PORTD,PD5
+		call	BEEP_LOOP
+		call	WAIT
+		cbi		PORTD,PD4
+		cbi		PORTD,PD5
+		inc		r18
+		cpi		r18,5
+		breq	EXIT
+		jmp		NEW_GAME_LOOP
+
+LOST_GAME:
+		ldi		r18,0
+LOST_GAME_LOOP:	
+		sbi		PORTD,PD5
+		cbi		PORTD,PD4
+		call	BEEP_LOOP
+		call	WAIT
+		sbi		PORTD,PD4
+		cbi		PORTD,PD5
+		call	BEEP_LOOP1
+		call	BEEP_LOOP1
+		call	WAIT
+		cbi		PORTD,PD5
+		cbi		PORTD,PD4
+		inc		r18
+		cpi		r18,3
+		breq	EXIT
+		jmp		LOST_GAME_LOOP
+
+EXIT:
+		ret
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+//Högtalare - BEEP LOOPS
+BEEP_LOOP:
+		ldi		r17,240
+BEEP_READY:
+		dec		r17
+		cpi		r17,0
+		breq	NOBEEP
+BEEP:		
+		call	FREQUENCY_LOAD1	
+		sbi		PORTB,PB1
+		sbi		DDRB,1
+		call	WAIT
+		cbi		PORTB,PB1
+		jmp		BEEP_READY
+
+NOBEEP:
+		cbi		PORTB,PB1
+		cbi		DDRB,1
+		ret
+
+BEEP_LOOP1:
+		ldi		r17,100
+BEEP_READY1:
+		dec		r17
+		cpi		r17,0
+		breq	NOBEEP
+BEEP1:		
+		call	FREQUENCY_LOAD2	
+		sbi		PORTB,PB1
+		sbi		DDRB,1
+		call	WAIT
+		cbi		PORTB,PB1
+		jmp		BEEP_READY1
+
+NOBEEP1:
+		call	WAIT
+		cbi		PORTB,PB1
+		cbi		DDRB,1
+		call	WAIT
+		ret
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//HÖGTALARE - DELAY & FREQUENCY
+WAIT:															
+		sbiw	r24,4															//4.1 ms delay											
+		brne	WAIT
+		ret
+
+FREQUENCY_LOAD1:																//64.20 mikrosekunder - 15600 Hz
+		ldi		r16,255
+FREQUENCY_1:
+		dec		r16
+		cpi		r16,0
+		brne	FREQUENCY_1
+		ret
+
+FREQUENCY_LOAD2:																//25.55 mikrosekunder - 39000 Hz
+		ldi		r16,100
+FREQUENCY_2:
+		dec		r16
+		cpi		r16,0
+		brne	FREQUENCY_2
+		ret
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//LCD
+LCD_GAMESTART: 
+		ldi		ZH, HIGH(TEXTONE*2)
+	    ldi		ZL, LOW(TEXTONE*2) 
+		call	LCD_LINE_PRINT
+		call	NEW_GAME
+		ret 
+
+LCD_GAMEOVER:
+        ldi		ZH, HIGH(TEXTTWO*2)
+		ldi		ZL, LOW(TEXTTWO*2)
+		call	LCD_LINE_PRINT
+		call	LOST_GAME
+		ret
+
+LCD_READY:
+		ldi		ZH,HIGH(TEXTTHREE*2)
+		ldi		ZL,LOW(TEXTTHREE*2)
+		call	LCD_LINE_PRINT
+		ret
+
+LCD_LINE_PRINT:
+		 call LCD_HOME
+		 call LCD_PRINT 
+		 ret
+
+LCD_PRINT: 
+		lpm r16, Z+
+		cpi r16, $00
+		breq LCD_PRINT_DONE
+		call LCD_ASCH 
+		rjmp LCD_PRINT
+
+LCD_PRINT_DONE:
+		ret
+
+LCD_ASCH:
+		call LCD_SEND_PREP
+		lds r16, LCD_DATA
+		ori r16, $01
+		sts LCD_DATA, r16 
+		lds r16, LCD_DATA2
+		ori r16, $01 
+		sts LCD_DATA2, r16
+		call LCD_SEND
+		ret 
+	
+LCD_COMMAND:
+		call LCD_SEND_PREP
+		lds r16, LCD_DATA
+		andi r16, $FE
+		sts LCD_DATA, r16
+		lds r16, LCD_DATA2
+		andi r16, $FE
+		sts LCD_DATA2, r16 
+		call LCD_SEND
+		ret 
+
+LCD_WRITE: 
+		sts DATA, r16 
+		ldi r20, $20 //Var r18 innan!
+		call TWI_SEND 
+		ret 
+
+LCD_WAIT:
+		push r24
+		push r25
+		ldi r24, $FF
+		ldi r25, $CF
+LCD_W1:
+		sbiw r24, 1
+		brne LCD_W1
+		pop r25
+		pop r24
+		ret         
+
+LCD_CLEAR: 
+		ldi r16, LCD_CLR
+		call LCD_COMMAND
+		call LCD_WAIT
+		ret
+
+LCD_HOME: 
+		ldi r16, HOME
+		call LCD_COMMAND
+		ret
+
+LCD_SEND_PREP:
+		mov r17, r16
+		andi r16, $FD 
+		ori r16, $08 
+		sts LCD_DATA, r16
+		swap r17
+		andi r17, $FD
+		ori r17, $08 
+		sts LCD_DATA2, r17
+		ret
+
+LCD_SEND: 
+		call LCD_WRITE4
+		lds r16, LCD_DATA2
+		sts LCD_DATA, r16 
+		call LCD_WRITE4
+		ret
+
+LCD_WRITE4:
+        call LCD_E_LOW
+        call LCD_E_HIGH
+		call LCD_E_LOW
+		ret
+
+LCD_E_LOW:
+		lds r16, LCD_DATA
+		andi r16, $FB //NO- LIST: $DF
+		call LCD_WRITE
+		ret
+
+LCD_E_HIGH: 
+		lds r16, LCD_DATA
+		ori r16, $0C//PROBLEM HÄR! NO- LIST: $04, $0C, $20 
+		call LCD_WRITE
+		ret
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//TWI
+TWI_SEND:
+		ldi		r16,(1<<TWINT) | (1<<TWSTA) | (1<<TWEN)		// Send start
+		sts		TWCR, r16 
+		call	W_WAIT2 // vill inte göra tx delen 			
+		
+LOAD_SLA_W:
+			lsl		r20
+			sts		TWDR, r20 //lds först
+			call	TX
+
+LOAD_DATA:
+			lds		r16, DATA	// Load data till TWDR register. clear TWINT bit in TWCR för att påbörja överföring av data // kommmer nog behöva vara lds när det tas från sram 
+			sts		TWDR, r16
+			call	TX
+
+W_STOP:
+			ldi		r16, (1<<TWINT) | (1<<TWEN) | (1<<TWSTO)
+			sts		TWCR, r16
+			ret
+
+TX:
+			ldi		r16, (1<<TWINT) | (1<<TWEN)
+			sts		TWCR, r16
+
+W_WAIT2: //stega igenom
+			lds		r24,TWCR	// WAIT for TWINT flag set, betyder att SLA+W har skickats och ACK/NACK har tagits emot
+			sbrs	r24,TWINT
+			rjmp	W_WAIT2
+			ret
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+DELAY_HALFSECOND: ; For CLK(CPU) = 1 MHz
+			ldi r22,31 ; One clock cycle;
+DELAY1_TWO:
+			ldi r23,250 ; One clock cycle
+DELAY2_TWO:
+			ldi r24,255 ; One clock cycle
+DELAY3_TWO:
+			dec r24 ; One clock cycle
+			nop ; One clock cycle
+			brne Delay3_TWO ; Two clock cycles when jumping to Delay3, 1 clock when continuing to DEC
+			dec r17 ; One clock cycle
+			brne Delay2_TWO ; Two clock cycles when jumping to Delay2, 1 clock when continuing to DEC
+			dec r16 ; One clock Cycle
+			brne Delay1_TWO ; Two clock cycles when jumping to Delay1, 1 clock when continuing to RET
+			ret
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+LOAD_FLOOR: 
+	ldi		ZH, HIGH(FLOOR*2)
+	ldi		ZL, LOW(FLOOR*2)
+	ldi		r18, 12
+	ret
+
+LOAD_OBSTICLE:
+	ldi		ZH, HIGH(OBSTICLE*2)
+	ldi		ZL, LOW(OBSTICLE*2)
+	ldi		r18, 12
+	ret 
+
+LOAD_DINO_IDLE: 
+	ldi ZH, HIGH(DINO_IDLE*2)
+	ldi ZL, LOW(DINO_IDLE*2)
+	ldi r18, 12
+	ret 
+
+LOAD_DINO_JUMP1:
+	ldi ZH, HIGH(DINO_JUMP1*2)
+	ldi ZL, LOW(DINO_JUMP1*2)
+	ldi r18, 12
+	ret
+	
+LOAD_DINO_JUMP2:
+	ldi ZH, HIGH(DINO_JUMP2*2)
+	ldi ZL, LOW(DINO_JUMP2*2)
+	ldi r18, 12
+	ret 
+	
+LOAD_DINO_JUMP3:
+	ldi ZH, HIGH(DINO_JUMP3*2)
+	ldi ZL, LOW(DINO_JUMP3*2)
+	ldi r18, 12
+	ret  
+
+SPI_TRANSMIT:
+// push r16
+out SPDR, r16
+
+// jmp WAIT_TRANSMIT
+
+WAIT_TRANSMIT:
+in r16,SPSR
+sbrs r16, SPIF
+rjmp WAIT_TRANSMIT
+ret
+
+
+
+
+SEND_MATRIX:
+lpm r16, Z+
+dec r18
+cpi r18,0
+call SPI_TRANSMIT
+brne SEND_MATRIX
+call SPI_SEND
+ret
+
+SPI_SEND:
+sbi PORTB,PB2
+nop
+cbi PORTB,PB2
+ret
+
+SHORT_WAIT:
+adiw r24,8 //1ms
+brne SHORT_WAIT
+ret

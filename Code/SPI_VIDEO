@@ -1,0 +1,52 @@
+
+.equ MOSI = PB3
+.equ MISO = PB4
+.equ SCLK = PB5
+.equ SPI_DDR = DDRB
+.equ CS = PB2 
+
+
+.dseg
+
+.cseg
+
+
+SPI_MASTER_INIT:	// Enable spi_spcr, sätta att vi är master, sänka hastigheten (Fosc/128)= sänka till långsamste hastigheten 
+		ldi		r17, (1<<MOSI)|(1<<SCLK)|(1<<PB2)
+		out		SPI_DDR, r17
+		ldi		r17, (1<<SPE) | (1<<MSTR) | (1<< SPR0)
+		out		SPCR, r17
+		ret 
+
+SPI_TRANSMIT:
+//		push	r16
+		out		SPDR, r16
+		
+	//	jmp		WAIT_TRANSMIT
+		
+WAIT_TRANSMIT:
+		in		r16,SPSR
+		sbrs	r16, SPIF
+		rjmp	WAIT_TRANSMIT
+		ret
+
+
+	SEND_MATRIX:
+		lpm 	r16, Z+
+		dec		r18
+		cpi		r18,0
+		call	SPI_TRANSMIT
+		brne	SEND_MATRIX
+		call	SPI_SEND
+		ret
+		
+SPI_SEND:
+		sbi		PORTB,PB2
+		nop
+		cbi		PORTB,PB2
+		ret
+		
+SHORT_WAIT:
+		adiw	r24,8 //1ms
+		brne	SHORT_WAIT
+		ret

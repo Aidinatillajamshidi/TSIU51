@@ -1,0 +1,24 @@
+
+INIT: 
+
+   ldi r17, $00 (Måste få ut $00 från DDRD, går att använda vilket register som)
+   out DDRD, r17
+   clr r17
+
+MAIN:
+
+   Call KNAPPY
+   Call END
+
+
+KNAPP: 
+
+   sbic PIND, PD1 //PD0 är för höger knapp (tror jag)
+   rjmp KNAPP
+   Call (Eftersökt rutin här!)
+   ret
+
+END: 
+
+   rjmp END 
+

@@ -1,0 +1,57 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Delay 1 second
+DELAY_SECOND:                 ; For CLK(CPU) = 1 MHz
+    ldi     r16,62     ; One clock cycle;
+DELAY1_ONE:
+    ldi     r17,255     ; One clock cycle
+DELAY2_ONE:
+    ldi     r18,252     ; One clock cycle
+DELAY3_ONE:
+    dec     r18            ; One clock cycle
+    nop                     ; One clock cycle
+    brne    Delay3_ONE          ; Two clock cycles when jumping to Delay3, 1 clock when continuing to DEC
+
+    dec     r17            ; One clock cycle
+    brne    Delay2_ONE          ; Two clock cycles when jumping to Delay2, 1 clock when continuing to DEC
+
+    dec     r16            ; One clock Cycle
+    brne    Delay1_ONE          ; Two clock cycles when jumping to Delay1, 1 clock when continuing to RET
+	ret
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Delay 0.5 second
+DELAY_HALFSECOND:                 ; For CLK(CPU) = 1 MHz
+    ldi     r16,31     ; One clock cycle;
+DELAY1_TWO:
+    ldi     r17,250     ; One clock cycle
+DELAY2_TWO:
+    ldi     r18,255     ; One clock cycle
+DELAY3_TWO:
+    dec     r18            ; One clock cycle
+    nop                     ; One clock cycle
+    brne    Delay3_TWO         ; Two clock cycles when jumping to Delay3, 1 clock when continuing to DEC
+
+    dec     r17            ; One clock cycle
+    brne    Delay2_TWO          ; Two clock cycles when jumping to Delay2, 1 clock when continuing to DEC
+
+    dec     r16            ; One clock Cycle
+    brne    Delay1_TWO          ; Two clock cycles when jumping to Delay1, 1 clock when continuing to RET
+	ret
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Delay 0.25 second
+DELAY_HALFHALF:                 ; For CLK(CPU) = 1 MHz
+    ldi     r16,16     ; One clock cycle;
+DELAY1_THREE:
+    ldi     r17,245    ; One clock cycle
+DELAY2_THREE:
+    ldi     r18,255     ; One clock cycle
+DELAY3_THREE:
+    dec     r18            ; One clock cycle
+    nop                     ; One clock cycle
+    brne    Delay3_THREE          ; Two clock cycles when jumping to Delay3, 1 clock when continuing to DEC
+
+    dec     r17            ; One clock cycle
+    brne    Delay2_THREE          ; Two clock cycles when jumping to Delay2, 1 clock when continuing to DEC
+
+    dec     r16            ; One clock Cycle
+    brne    Delay1_THREE          ; Two clock cycles when jumping to Delay1, 1 clock when continuing to RET
+	ret

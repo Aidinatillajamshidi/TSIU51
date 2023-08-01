@@ -1,0 +1,32 @@
+.dseg
+		.include "TWI_READ_SCORE.inc"
+		.include "SCORE.inc"
+
+.cseg
+
+.equ SLA_W_L = $24
+.equ SLA_W_R = $25		
+
+
+TWI_SEND:
+		//Application writes to TWCR to initiate transmission of START
+		ldi		r16,(1<<TWINT) | (1<<TWSTA) | (1<<TWEN)		// Send start
+		sts		TWCR, r16 
+
+		call W_WAIT2 // CHECK IF TWINT IS SET
+		ret
+
+
+		LOAD_SLA_W_LEFT:
+				lsl		r20
+				lds		r16, SLA_W_L   //SLA_W // laddar SLA_W till  TWDR register. Clear TWINT bit in TWCR för att starta överföring av adressen 
+				sts		TWDR, r20 //lds först
+				call	TX // ACK + CHECK IF TWINT IS SET
+				ret
+
+		LOAD_SLA_W_RIGHT:
+				lsl		r20
+				lds		r16, SLA_W_L   //SLA_W // laddar SLA_W till  TWDR register. Clear TWINT bit in TWCR för att starta överföring av adressen 
+				sts		TWDR, r20 //lds först
+				call	TX // ACK + CHECK IF TWINT IS SET
+				ret

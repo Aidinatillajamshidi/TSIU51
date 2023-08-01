@@ -1,0 +1,20 @@
+ROT_LED_ON: 
+
+call START
+ldi	r16,$4f				//ROTLED_WRITE
+call TWI_SEND_BYTE
+ldi r16,0b11111100
+call TWI_SEND_BYTE
+call	STOP
+jmp START
+
+ROT_LED_OFF: 
+
+call START
+ldi	r16,ROTLED_WRITE
+call TWI_SEND_BYTE
+ldi r16, $ff
+call TWI_SEND_BYTE
+call	STOP
+jmp START 
+

@@ -1,0 +1,97 @@
+
+
+.equ TIMER1_TICK =  62500 - 1			// 16 000 000 / prescaler 256 / 15625 = 4 (fyra avbrott i sekunden)
+//----------------------------------------------------------------------------
+
+
+// Initiering av timern, görs i början av programmet t.ex. i någon HARDWARE_INIT
+AVBROTTSRUTIN_INIT:			
+	clr		r16												
+	ldi		r16, (1<<WGM21) //|  (1<<CS12) //|// //  	// Waveform gen mode 12 | Clock select 12 (= prescaler 256)
+	sts		TCCR2A, r16
+	ldi		r16, (1<<CS22)|(1<<CS21)|(1<<CS20) // HIGH(TIMER1_TICK) //// 		// Höga delen av TIMER1_TICK
+	sts		TCCR2B, r16
+	ldi		r16, 251//(1<<CS22)|(1<<CS21)|(1<<CS20) //LOW(TIMER1_TICK)			// Låga delen av TIMRE1_TICK
+	sts		OCR2A, r16
+	ldi		r16, (1<<OCIE2B)					// Tillåt avbrott	
+	sts		TIMSK2, r16
+	ret
+//------------------------------------------A----------------------------------
+
+
+
+// ----- Rutinen som utförs --------------------------------------------------
+AVBROTTSRUTIN:	
+		push r22
+
+	ROCK_SPEED:
+		lds r22, STORE_SPEED
+		inc r22
+		sts STORE_SPEED, r22
+		lds r22, STORE_SPEED
+		cpi r22, IM_SPEED
+		brlo NO_ROCK
+		call ROCK_MOVE
+		clr r22
+		sts STORE_SPEED, r22
+
+	NO_ROCK:
+		pop r22
+		reti
+// ---------------------------------------------------------------------------
+
+
+
+
+
+
+.equ TIMER2_TICK = 60					// 16 000 000 / prescaler 256 / 15625 = 4 (fyra avbrott i sekunden)
+//----------------------------------------------------------------------------
+
+
+// Initiering av timern, görs i början av programmet t.ex. i någon HARDWARE_INIT
+FPS_INIT:															
+	ldi		r16, (1<<WGM12)|(1<<CS12)		// Waveform gen mode 12 | Clock select 12 (= prescaler 256)
+	sts		TCCR1B, r16
+	ldi		r16, HIGH(TIMER2_TICK)			// Höga delen av TIMER1_TICK
+	sts		OCR1AH, r16
+	ldi		r16, LOW(TIMER2_TICK)			// Låga delen av TIMRE1_TICK
+	sts		OCR1AL, r16
+	ldi		r16,(1<<OCIE1A)					// Tillåt avbrott	
+	sts		TIMSK1, r16
+	ret
+//----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+// ----- Rutinen som utförs --------------------------------------------------
+FPS_RUTIN:
+//		push ZL
+//		push ZH
+		push r16
+		in r16, sreg
+		call RETREIVE_PIXEL
+		out sreg, r16
+		pop r16
+//		pop ZH
+//		pop ZL
+		reti
+// ---------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+

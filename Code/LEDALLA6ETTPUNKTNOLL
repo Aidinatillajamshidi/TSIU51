@@ -1,0 +1,25 @@
+
+
+HW_INIT: 
+
+ldi r16, low(RAMEND)
+out spl, r16
+ldi r16, high(RAMEND) 
+out sph, r16 
+
+ldi r16, 0b11111111 //ALLA 6 TÄNDS PGR DEB HÄR...
+out DDRB, r16
+
+
+MAIN:
+
+call RGB
+jmp MAIN
+
+RGB:
+
+sbi DDRB, 4
+ldi r16, 0//0b00000001 //ALT. ALLA 6 TÄNDS PGR DEN HÄR...
+out DDRB, r16 
+sbi PINB, PB4 //ALT. ALLA 6 TÄNDS PGR DEN HÄR...
+ret
