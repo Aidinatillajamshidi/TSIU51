@@ -1,9 +1,9 @@
-TSIU51
-Project with Microcontroller
-Linköpings universitet
-2022
+TSIU51 <br />
+Project with Microcontroller <br />
+Linköpings universitet <br />
+2022 <br />
 
-Course content:
+**Course content:**
 
 - Design methodology:
 - Modern development and simulation environment
